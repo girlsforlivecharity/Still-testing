@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASH MONEY</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body {
+    font-family:'Roboto',sans-serif;
+    background: linear-gradient(to right,#0f2027,#203a43,#2c5364);
+    color:#fff; min-height:100vh;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:flex-start;
+    padding-top:50px;
+    padding-bottom: 50px; /* Added padding to accommodate footer */
+    }
+    
+  h1, h2 { margin-bottom:20px; }
+  h1 { font-size:2.5rem; text-shadow:2px 2px 5px rgba(0,0,0,0.5); line-height:1.2; }
+  h1 span { font-weight:900; }
+  h2 { margin-bottom:15px; }
+    
+    #logo {
+      width: 140px;
+      height: 140px;
+      border-radius: 70px;
+   }
+
+  #auth-section, #welcome-section, #plans-page, #dashboard, #profile-page, #home-page {
+    background: rgba(255,255,255,0.05);
+    padding:30px 40px;
+    border-radius:15px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.5);
+    width: 320px;
+    text-align:center;
+    margin-bottom:20px;
+  }
+
+  input {
+    padding:12px;
+    margin:10px 0;
+    width:100%;
+    border:none;
+    border-radius:8px;
+    outline:none;
+    font-size:1rem;
+  }
+
+  button {
+    padding:12px 20px;
+    margin: 10px 5px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+    font-size:1rem;
+    transition: all 0.3s ease;
+  }
+  button:hover { transform:translateY(-2px); box-shadow:0 5px 15px rgba(0,0,0,0.3); }
+
+  #signup-btn { background:#28a745; color:#fff; }
+  #signin-btn { background:#007bff; color:#fff; }
+  #resend-btn { background:#17a2b8; color:#fff; border-radius:10px; }
+  #logout-btn { background:#dc3545; color:#fff; }
+
+  #message { margin-top:15px; min-height:20px; font-weight:bold; }
+
+  .form-modal {
+    display:none; position:fixed; top:0; left:0;
+    width:100%; height:100%; background: rgba(0,0,0,0.7);
+    display:flex; align-items:center; justify-content:center;
+    z-index: 3000;
+  }
+  .form-modal > div {
+    background:#fff; color:#000; padding:30px;
+    border-radius:15px; width:300px; text-align:center;
+    position:relative;
+  }
+  .form-modal input {
+    margin:5px 0;
+    border: 2px solid black;
+    border-radius:8px;
+    padding:12px;
+    width:100%;
+    outline:none;
+    font-size:1rem;
+  }
+
+  @media(max-width:400px) { #auth-section, #welcome-section, .form-modal > div, #plans-page, #dashboard, #profile-page, #home-page { width:90%; padding:20px; } }
+
+  .button-row { display:flex; justify-content:center; gap:10px; margin-bottom:15px; }
+
+  #top-left-menu { display:none; position:fixed; top:20px; left:20px; z-index:1000; }
+  #menu-btn { background:#17a2b8; color:#fff; border:none; padding:10px 12px; border-radius:5px; font-size:1.2rem; cursor:pointer; }
+  #profile-modal-menu {
+    display:none; position:absolute; top:40px; left:0; background:#fff; color:#000; border-radius:10px;
+    padding:15px; min-width:150px; box-shadow:0 5px 15px rgba(0,0,0,0.3);
+    text-align: left;
+  }
+  #profile-modal-menu button { width:100%; border-radius:5px; padding:8px; margin: 5px 0;}
+  /* NEW STYLES for menu buttons */
+  #profile-modal-menu #menu-home-btn { background:#17a2b8; color:#fff; }
+  #profile-modal-menu #menu-profile-btn { background:#007bff; color:#fff; }
+  #profile-modal-menu #menu-logout-btn { background:#dc3545; color:#fff; }
+
+  .plan-btn { transition: all 0.3s ease; }
+
+  /* Deposit modal */
+  #deposit-modal .content {
+    background:#fff; color:#000; padding:20px;
+    border-radius:12px; width:320px; text-align:left;
+  }
+  #deposit-modal h3 { margin-top:0; }
+  #deposit-modal button { width:48%; }
+  #account-details { display:none; margin-top:15px; }
+  
+  /* Transaction History Styles */
+  #transaction-history {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 15px;
+    padding: 10px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    text-align: left;
+  }
+  .transaction-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.1);
+    font-size: 0.9rem;
+  }
+  .transaction-item:last-child {
+    border-bottom: none;
+  }
+  .deposit { color: #28a745; font-weight: bold; }
+  .interest { color: #17a2b8; }
+  /* NEW STYLES: Withdrawal transaction status */
+  .withdrawal-pending { color: orange; font-weight: bold; }
+  .withdrawal-success { color: #28a745; font-weight: bold; }
+  .tx-date { font-size: 0.75rem; opacity: 0.7; }
+  
+  /* Loading Pop-up Styles */
+  #loading-modal .content {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 250px;
+    color: #000;
+    text-align: center;
+  }
+  .loader-bar {
+    width: 100%;
+    background-color: #f3f3f3;
+    border-radius: 5px;
+    margin-top: 15px;
+    overflow: hidden;
+  }
+  .progress {
+    width: 0;
+    height: 20px;
+    background-color: #28a745;
+    transition: width 5s linear;
+  }
+
+  /* Notification Style */
+  #notification-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5000;
+    pointer-events: none;
+  }
+  .notification {
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 12px 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.5s, transform 0.5s;
+    transform: translateY(20px);
+    font-weight: bold;
+    min-width: 200px;
+    text-align: center;
+  }
+  .notification.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Social Links Footer Style */
+  #social-links-footer {
+    width: 100%;
+    padding: 20px 0 10px 0;
+    text-align: center;
+    margin-top: auto; 
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  #social-links-footer p {
+    margin-bottom: 10px;
+  }
+  .social-icons a {
+    color: #fff;
+    font-size: 24px;
+    margin: 0 10px;
+    transition: color 0.3s;
+  }
+  .social-icons a:hover {
+    color: #28a745; /* Highlight color on hover */
+  }
+
+  /* Privacy Policy Modal specific styles */
+  #privacy-policy-modal > div {
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    text-align: left;
+    padding: 40px;
+  }
+  #privacy-policy-modal h2 { 
+    color: #007bff; 
+    text-align: center; 
+    font-size: 1.5rem; 
+    margin-bottom: 10px;
+  }
+  #privacy-policy-modal h3 {
+    color: #2c5364;
+    font-size: 1.2rem;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #ccc;
+  }
+  #privacy-policy-modal ul {
+    list-style: disc;
+    margin-left: 20px;
+    padding-left: 10px;
+    color: #333;
+    font-size: 0.95rem;
+  }
+  #privacy-policy-modal ul li {
+    margin-bottom: 5px;
+  }
+  #privacy-policy-modal p {
+    color: #333;
+    line-height: 1.4;
+    margin-bottom: 10px;
+  }
+  #scroll-instruction {
+      text-align: center;
+      color: #dc3545; /* Red color for visibility */
+      font-weight: bold;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+  }
+
+  /* Withdrawal Details Modal */
+  #withdrawal-modal > div {
+    background:#fff; color:#000; padding:30px;
+    border-radius:15px; width:350px; text-align:left;
+  }
+  #withdrawal-modal label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+    color: #333;
+    font-size: 0.9rem;
+  }
+  #withdrawal-modal input {
+    margin: 5px 0 15px 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  #withdrawal-modal .button-row button {
+      width: 48%;
+      margin: 0;
+  }
+
+  /* Withdrawal Amount Modal */
+  #withdraw-amount-modal > div {
+      background:#fff; color:#000; padding:30px;
+      border-radius:15px; width:300px; text-align:center;
+  }
+  
+  /* NEW STYLES for input with Naira sign */
+  .amount-input-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      border: 2px solid black;
+      border-radius: 8px;
+      overflow: hidden;
+      background: white;
+  }
+  .amount-input-group .currency-sign {
+      padding: 15px 10px 15px 15px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #333;
+      background: #f7f7f7;
+  }
+  #withdraw-amount-input {
+      flex-grow: 1;
+      border: none;
+      outline: none;
+      padding: 15px 15px 15px 0;
+      margin: 0;
+      font-size: 1.2rem;
+      text-align: right;
+  }
+  
+  /* Deposit Processing Message */
+  #processing-message {
+    position: fixed;
+    bottom: 20px;
+    right: 20px; 
+    left: auto; 
+    transform: none; 
+    background-color: white; 
+    color: black; 
+    padding: 8px 15px; 
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    font-weight: normal; 
+    font-size: 0.85rem; 
+    opacity: 0.9;
+    animation: fadeInOut 3s forwards;
+  }
+
+  @keyframes fadeInOut {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  
+  /* NEW STYLE: Lock icon alignment on Dashboard */
+  .balance-line { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      font-size: 1rem; /* Adjust font size to match other lines */
+  }
+  .balance-line i { 
+      margin-right: 5px; 
+      font-size: 0.9rem; /* Smaller icon */
+  }
+  .balance-line b {
+      margin-right: 5px;
+  }
+</style>
+</head>
+<body>
+  
+<img id="logo" src="resources/logo.jpg"/>
+<h1 id="main-title">Welcome to<br><span>CASH MONEY</span></h1>
+<p style="margin-bottom:20px;">Home of Profits 💰</p>
+
+<div id="auth-section">
+  <div class="button-row">
+    <button id="signup-btn" onclick="openSignUpForm()">Sign Up</button>
+    <button id="signin-btn" onclick="openSignInForm()">Sign In</button>
+  </div>
+
+  <button id="resend-btn" onclick="openResendModal()" style="width:100%; margin-top:15px; padding:15px; font-size:1.1rem;">
+    Resend Verification Email
+  </button>
+
+  <div id="message"></div>
+</div>
+
+<div id="top-left-menu">
+  <button id="menu-btn" onclick="toggleProfileMenu()">&#9776;</button>
+  <div id="profile-modal-menu">
+    <button id="menu-home-btn" onclick="openHomePage(); toggleProfileMenu();">Home</button>
+    <button id="menu-profile-btn" onclick="openProfilePage(); toggleProfileMenu();">Profile</button>
+    <button id="menu-logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div id="signup-form" class="form-modal">
+  <div>
+    <h2>Create Account</h2>
+    <input type="text" id="signup-name" placeholder="Full Name" /><br>
+    <input type="text" id="signup-username" placeholder="Username" /><br>
+    <input type="email" id="signup-email-form" placeholder="Email" /><br>
+    <input type="password" id="signup-password-form" placeholder="Password" /><br>
+    <button onclick="submitSignUp()">Submit</button>
+    <button onclick="cancelSignUp()">Cancel</button>
+  </div>
+</div>
+
+<div id="signin-form" class="form-modal">
+  <div>
+    <h2>Sign In</h2>
+    <input type="email" id="signin-email-modal" placeholder="Email" /><br>
+    <input type="password" id="signin-password-modal" placeholder="Password" /><br>
+    <button onclick="submitSignIn()">Submit</button>
+    <button onclick="cancelSignIn()">Cancel</button><br>
+    <button onclick="resetPasswordFromModal()">Reset Password</button>
+  </div>
+</div>
+
+<div id="resend-form" class="form-modal">
+  <div>
+    <h2>Resend Verification Email</h2>
+    <input type="email" id="resend-email-modal" placeholder="Enter your email" /><br>
+    <button onclick="resendVerificationModal()">Send Verification Email</button>
+    <button onclick="closeResendModal()">Cancel</button>
+  </div>
+</div>
+
+<div id="welcome-section" style="display:none;">
+  <h2 id="welcome-title">Welcome!</h2>
+  <p>You are logged in and email verified ✅</p>
+  <button style="margin-top:20px; padding:12px 20px; border-radius:10px; background:#17a2b8; color:#fff; font-weight:bold;"
+          onclick="openPlans()">Go to Plans</button>
+</div>
+
+<div id="home-page" style="display:none; margin-top:20px; text-align:center;">
+    <h2 style="font-weight: bold; margin-bottom: 30px;">Ready to Start Earning?</h2>
+    <button style="margin-top:20px; padding:15px 30px; border-radius:12px; background:#28a745; color:#fff; font-weight:bold; font-size:1.2rem; margin-bottom: 15px;"
+            onclick="openPlans()">Start Earning</button>
+    <button style="padding:15px 30px; border-radius:12px; background:#007bff; color:#fff; font-weight:bold; font-size:1.2rem;"
+            onclick="backToDashboard()">Dashboard</button>
+</div>
+
+<div id="plans-page" style="display:none; margin-top:20px; text-align:center;">
+  <h2>Choose Your Plan</h2>
+  <div style="display:flex; flex-direction:column; gap:15px; align-items:center; margin-top:15px;">
+    <button class="plan-btn" style="background:#6f42c1; color:#fff; width:120px; padding:10px 0; font-size:1rem; border-radius:8px;"
+            onclick="choosePlan('Daily',2000,200,this)">Daily</button>
+    <button class="plan-btn" style="background:#28a745; color:#fff; width:120px; padding:10px 0; font-size:1rem; border-radius:8px;"
+            onclick="choosePlan('Weekly',7000,300,this)">Weekly</button>
+    <button class="plan-btn" style="background:#007bff; color:#fff; width:120px; padding:10px 0; font-size:1rem; border-radius:8px;"
+            onclick="choosePlan('Monthly',20000,400,this)">Monthly</button>
+  </div>
+  <button style="margin-top:20px; padding:10px 15px; border-radius:10px; background:#dc3545; color:#fff; font-weight:bold;"
+          onclick="backToDashboard()">Back to Dashboard</button>
+</div>
+
+<div id="deposit-modal" class="form-modal">
+  <div class="content">
+    <h3 id="deposit-title"></h3>
+    <p><b>Amount to Deposit:</b> ₦<span id="deposit-amount"></span></p>
+    <p><b>Daily Interest:</b> ₦<span id="deposit-interest"></span></p>
+    <div style="display:flex; justify-content:space-between; margin-top:15px;">
+      <button style="background:teal; color:#fff;" onclick="showAccountDetails()">Confirm</button>
+      <button style="background:red; color:#fff;" onclick="closeDeposit()">Cancel</button>
+    </div>
+    <div id="account-details">
+      <hr>
+      <p><b>Bank Name:</b> Access Bank</p>
+      <p style="display:flex; justify-content:space-between; align-items:center;">
+        <span><b>Account Number:</b> 1234567890</span>
+        <button style="background:green; color:#fff; padding:5px 10px; font-size:0.9rem;" onclick="copyAccountNumber()">Copy Acc No</button>
+      </p>
+      <p><b>Receiver Name:</b> Cash Money Ltd</p>
+      <div style="display:flex; justify-content:space-between; margin-top:10px;">
+        <button style="background:#17a2b8; color:#fff;" onclick="openHomePage()">Back to Home</button>
+        <button style="background:orange; color:#fff;" 
+          onclick="handleTransferConfirmation(
+            parseInt(document.getElementById('deposit-amount').innerText.replace(/,/g,'')), 
+            parseInt(document.getElementById('deposit-interest').innerText.replace(/,/g,''))
+          )">
+          I've Transferred the Money
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="withdrawal-modal" class="form-modal">
+  <div>
+    <h2>Enter Withdrawal Details</h2>
+    <label for="bank-name">Bank Name:</label>
+    <input type="text" id="bank-name" placeholder="e.g., Access Bank" /><br>
+    
+    <label for="account-name">Account Name:</label>
+    <input type="text" id="account-name" placeholder="e.g., John Doe" /><br>
+    
+    <label for="account-number">Account Number:</label>
+    <input type="number" id="account-number" placeholder="e.g., 1234567890" /><br>
+    
+    <div class="button-row">
+      <button style="background:#28a745; color:#fff;" onclick="submitWithdrawalDetails()">Submit</button>
+      <button style="background:#dc3545; color:#fff;" onclick="closeWithdrawalModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="withdraw-amount-modal" class="form-modal">
+  <div>
+    <h2>How much to withdraw?</h2>
+    <div class="amount-input-group">
+        <span class="currency-sign">₦</span>
+        <input type="number" id="withdraw-amount-input" value="1000.00" min="1000" step="100" placeholder="0.00" />
+    </div>
+    <button style="background:#28a745; color:#fff;" onclick="submitWithdrawalAmount()">Confirm Withdrawal</button>
+    <button style="background:#dc3545; color:#fff;" onclick="closeWithdrawAmountModal()">Cancel</button>
+  </div>
+</div>
+
+
+<div id="loading-modal" class="form-modal" style="display: none;">
+  <div id="loading-modal-content" class="content">
+    <h3>Checking for Transfer...</h3>
+    <div class="loader-bar">
+      <div class="progress" id="loading-progress"></div>
+    </div>
+    <p style="margin-top: 15px; color: #000; font-size: 0.9rem;">Please wait...</p>
+  </div>
+</div>
+
+<div id="dashboard" style="display:none; margin-top:20px; text-align:center;">
+  <h2>📊 Your Dashboard</h2>
+  
+  <p class="balance-line">
+    <i id="main-balance-lock" class="fas fa-lock" style="color:red;"></i>
+    <b>Main Balance:</b> ₦<span id="main-balance">0</span>
+  </p>
+  
+  <p><b>Interest Earned:</b> ₦<span id="interest-earned">0</span></p>
+  
+  <p style="margin-top: 15px; font-size: 1.1rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px; font-weight: bold;">
+    <b>Total Balance:</b> ₦<span id="total-balance">0</span>
+  </p>
+  
+  <h3 style="margin-top:20px; margin-bottom:10px; border-top: 1px solid rgba(255,255,255,0.2); padding-top:10px;">
+    Transaction History
+  </h3>
+  <div id="transaction-history">
+    <p style="opacity: 0.7;">No transactions yet.</p>
+  </div>
+
+  <button style="margin-top:15px; padding:10px 20px; border-radius:10px; background:#007bff; color:#fff; font-weight:bold;" onclick="openWithdrawalModal()">Withdraw</button>
+  <button style="margin-top:15px; padding:10px 20px; border-radius:10px; background:#17a2b8; color:#fff; font-weight:bold;" onclick="openHomePage()">Back to Home</button>
+</div>
+
+<div id="profile-page" style="display:none; margin-top:20px; text-align:left;">
+  <h2>👤 User Profile</h2>
+  <p><b>Email:</b> <span id="profile-email-display"></span></p>
+  <hr style="border-top: 1px solid rgba(255,255,255,0.2); margin: 15px 0;">
+  
+  <h3>Withdrawal Details</h3>
+  <div id="saved-withdrawal-details">
+    <p><b>Bank Name:</b> <span id="profile-bank-name">N/A</span></p>
+    <p><b>Account Name:</b> <span id="profile-account-name">N/A</span></p>
+    <p><b>Account Number:</b> <span id="profile-account-number">N/A</span></p>
+  </div>
+  <p id="no-withdrawal-details" style="font-style: italic; color: orange; display:none;">No withdrawal details saved yet. Please set them using the "Withdraw" button on the Dashboard.</p>
+
+  <button style="margin-top:20px; padding:10px 15px; border-radius:10px; background:#dc3545; color:#fff; font-weight:bold;"
+          onclick="openHomePage()">Back to Home</button>
+</div>
+
+<div id="notification-container">
+  <div class="notification" id="app-notification"></div>
+</div>
+
+<div id="social-links-footer">
+  <p>Contact us: Facebook Twitter WhatsApp</p>
+  <div class="social-icons">
+    <a href="https://www.facebook.com/" target="_blank" title="Facebook"><i class="fab fa-facebook-square"></i></a>
+    <a href="https://twitter.com/" target="_blank" title="Twitter"><i class="fab fa-twitter-square"></i></a>
+    <a href="https://wa.me/2348000000000" target="_blank" title="WhatsApp"><i class="fab fa-whatsapp-square"></i></a>
+  </div>
+  <button onclick="openPrivacyPolicy()" style="background:transparent; color:#fff; border:1px solid #fff; padding:8px 15px; margin-top:10px; font-weight:400; font-size:0.9rem;">
+    Privacy Policy
+  </button>
+</div>
+
+<div id="privacy-policy-modal" class="form-modal">
+  <div id="policy-content-wrapper">
+    <div id="scroll-instruction">Scroll up to view the full policy. 👆</div>
+    <h2>Privacy Policy for CASH MONEY</h2>
+    <hr>
+
+    <h3>1. Information We Collect</h3>
+    <p>Since our service relies on Firebase Authentication and Firebase Firestore, we primarily collect the following types of data directly from you:</p>
+    <ul>
+      <li>**A. Authentication Data:** This is the information you provide during signup and login.
+        <ul>
+          <li>Required: Full Name (for display name), Username, Email Address, and a Password (stored securely as a hash by Firebase).</li>
+          <li>Purpose: To create and manage your secure account, verify your identity, and enable password recovery.</li>
+        </ul>
+      </li>
+      <li>**B. Financial Data:** This data is created as you use the investment features of the app.
+        <ul>
+          <li>Required: Main Balance, Daily Interest Rate, Interest Earned, and Transaction History (Deposit, Interest entries).</li>
+          <li>Purpose: To calculate your earnings, manage your investments, and maintain a verifiable record of your account activity.</li>
+        </ul>
+      </li>
+      <li>**C. Technical Data (Automatically Collected):**
+        <ul>
+          <li>Required: Device and location data (collected by Google/Firebase for security and analytics, e.g., IP address, browser type).</li>
+          <li>Purpose: To maintain service security, monitor performance, and prevent fraud.</li>
+        </ul>
+      </li>
+    </ul>
+
+    <h3>2. How We Use Your Information</h3>
+    <p>We use the collected information exclusively to operate, maintain, and provide the features and functionality of the CASH MONEY platform:</p>
+    <ul>
+      <li>To Provide Services: Executing investment plan calculations, updating your dashboard, and tracking your interest earnings.</li>
+      <li>Communication: Sending essential verification emails and, if necessary, communicating changes to the service.</li>
+      <li>Security: Protecting your account against unauthorized access and ensuring the integrity of financial data.</li>
+    </ul>
+
+    <h3>3. Data Storage and Security</h3>
+    <ul>
+      <li>Storage Location: All authentication and financial data are stored securely on Google's Firebase/Firestore platform, which adheres to industry-standard security protocols.</li>
+      <li>Security Measures: We and Google implement reasonable technical and organizational measures to protect your data from loss, theft, and unauthorized access.</li>
+    </ul>
+
+    <h3>4. Data Sharing and Disclosure</h3>
+    <p>We do not sell, rent, or trade your personal information. We only share data when necessary for service provision or legal reasons:</p>
+    <ul>
+      <li>Service Providers (Google/Firebase): We use Google's infrastructure to handle authentication, database storage, and hosting.</li>
+      <li>Legal Requirements: If required by law or subpoena, we may disclose your information to comply with a valid legal process.</li>
+    </ul>
+    
+    <h3>5. Your Rights</h3>
+    <p>You have the following rights regarding your personal data:</p>
+    <ul>
+      <li>Access:You can view your main balance, interest earned, and transaction history directly on your Dashboard.</li>
+      <li>Deletion: You may request the deletion of your account and all associated data by contacting us via the channels listed below.</li>
+    </ul>
+
+    <h3>6. Contact Us</h3>
+    <p>If you have any questions about this Privacy Policy or your data, please contact us through the links provided on our home page.</p>
+
+    <button onclick="closePrivacyPolicy()" style="background:#007bff; color:#fff; margin-top:20px;">Close</button>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCx_zVPezqmm9m8gHZRztWW7qSJ3LBA6bw",
+  authDomain: "cash-money-ac838.firebaseapp.com",
+  projectId: "cash-money-ac838",
+  storageBucket: "cash-money-ac838.appspot.com",
+  messagingSenderId: "163272707247",
+  appId: "1:163272707247:web:0bc97b7db993ae5d78185a"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function showMessage(msg,color){ const m=document.getElementById('message'); m.style.color=color; m.innerText=msg; }
+
+/**
+ * Function to show a temporary notification.
+ */
+function showNotification(message, duration = 3000) {
+    const notifElement = document.getElementById('app-notification');
+    notifElement.innerText = message;
+    notifElement.classList.add('show');
+
+    setTimeout(() => {
+        notifElement.classList.remove('show');
+    }, duration);
+}
+
+/**
+ * Functions to open and close the Privacy Policy Modal.
+ */
+function openPrivacyPolicy() {
+    const modal = document.getElementById('privacy-policy-modal');
+    const content = document.getElementById('policy-content-wrapper');
+    modal.style.display = 'flex';
+    
+    // Scroll to the bottom of the content wrapper immediately
+    // This makes the "Scroll up" instruction immediately visible upon opening.
+    content.scrollTop = content.scrollHeight; 
+}
+function closePrivacyPolicy() {
+    document.getElementById('privacy-policy-modal').style.display = 'none';
+}
+
+
+// Global state to hold the pending deposit details
+let pendingDepositAmount = 0;
+let pendingDepositInterest = 0;
+let pendingPlanType = ''; // NEW: Store plan type
+let interestInterval;
+const DAILY_INTERVAL_MS = 86400000; 
+const MIN_WITHDRAWAL_AMOUNT = 1000; // Minimum withdrawal constant
+let currentBalance = 0;
+let currentInterest = 0;
+let dailyInterest = 0;
+let isMainBalanceLocked = true; // NEW: Global state for lock
+
+function hideAllPages() {
+    document.getElementById('welcome-section').style.display = 'none';
+    document.getElementById('plans-page').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('profile-page').style.display = 'none';
+    document.getElementById('home-page').style.display = 'none'; // NEW HIDE
+    
+    // START OF FIX: Explicitly hide all modal forms to prevent pop-up
+    document.getElementById('signup-form').style.display = 'none';
+    document.getElementById('signin-form').style.display = 'none';
+    document.getElementById('resend-form').style.display = 'none';
+    document.getElementById('deposit-modal').style.display = 'none';
+    document.getElementById('withdrawal-modal').style.display = 'none';
+    document.getElementById('withdraw-amount-modal').style.display = 'none';
+    document.getElementById('loading-modal').style.display = 'none'; 
+    document.getElementById('privacy-policy-modal').style.display = 'none';
+    // END OF FIX
+}
+
+function showAuthSection() {
+    document.getElementById('auth-section').style.display = 'block';
+    document.getElementById('top-left-menu').style.display = 'none';
+    hideAllPages();
+}
+
+function showWelcome() {
+  document.getElementById('auth-section').style.display = 'none';
+  // document.getElementById('welcome-section').style.display = 'block'; // Removed, replaced by home page
+  showMessage("", 'green');
+
+  document.getElementById('top-left-menu').style.display = 'block';
+  // Now shows the new Home Page by default after login
+  openHomePage(); 
+}
+
+// NEW FUNCTION: Open Home Page
+function openHomePage() {
+    if (!auth.currentUser) {
+        showNotification("You must be signed in to view the home page.", 'red');
+        return;
+    }
+    hideAllPages();
+    document.getElementById('home-page').style.display = 'block';
+}
+
+// Profile modal menu toggle
+function toggleProfileMenu() {
+  const modal = document.getElementById('profile-modal-menu');
+  modal.style.display = (modal.style.display === 'none' || modal.style.display === '') ? 'block' : 'none';
+}
+window.addEventListener('click', function(event) {
+  const profileModal = document.getElementById('profile-modal-menu');
+  const menuBtn = document.getElementById('menu-btn');
+  if (profileModal.style.display === 'block' && !profileModal.contains(event.target) && event.target !== menuBtn) {
+    profileModal.style.display = 'none';
+  }
+});
+
+// --- Authentication and Navigation Functions ---
+function openSignUpForm(){ document.getElementById('signup-form').style.display='flex'; }
+function cancelSignUp(){ document.getElementById('signup-form').style.display='none'; }
+function submitSignUp(){
+  const name=document.getElementById('signup-name').value.trim();
+  const username=document.getElementById('signup-username').value.trim();
+  const email=document.getElementById('signup-email-form').value.trim();
+  const password=document.getElementById('signup-password-form').value.trim();
+  if(!name||!username||!email||!password){ alert("Please fill in all fields!"); return; }
+  auth.createUserWithEmailAndPassword(email,password).then(u=>{
+    u.user.updateProfile({displayName:name});
+    u.user.sendEmailVerification().then(()=>{
+      showMessage("Sign-up successful! ✅ Check your email for verification 📧",'green');
+      setTimeout(()=>{document.getElementById('signup-form').style.display='none'; showMessage("",'green');},5000);
+    });
+  }).catch(e=>alert(e.message));
+}
+function openSignInForm(){ document.getElementById('signin-form').style.display='flex'; }
+function cancelSignIn(){ document.getElementById('signin-form').style.display='none'; }
+function submitSignIn(){
+  const email=document.getElementById('signin-email-modal').value.trim();
+  const password=document.getElementById('signin-password-modal').value.trim();
+  if(!email||!password){ alert("Enter both email and password"); return; }
+  auth.signInWithEmailAndPassword(email,password).then(u=>{
+    if(u.user.emailVerified) showWelcome();
+    else { auth.signOut(); showMessage("Email not verified! Use 'Resend Verification Email'.",'red'); }
+    document.getElementById('signin-form').style.display='none';
+  }).catch(e=>alert(e.message));
+}
+function resetPasswordFromModal() {
+  const email = document.getElementById('signin-email-modal').value.trim();
+  if (!email) { showMessage("Enter your email in the sign-in form to reset password.", 'red'); return; }
+  auth.sendPasswordResetEmail(email)
+      .then(()=>showMessage("Password reset email sent to " + email + "!", 'green'))
+      .catch(e=>showMessage(e.message, 'red'));
+}
+function openResendModal(){ document.getElementById('resend-form').style.display='flex'; }
+function closeResendModal(){ document.getElementById('resend-form').style.display='none'; }
+function resendVerificationModal(){
+  const email=document.getElementById('resend-email-modal').value.trim();
+  if(!email){ showMessage("Enter your email to resend verification",'red'); return; }
+  auth.fetchSignInMethodsForEmail(email).then(methods=>{
+    if(!methods.length){ showMessage("No account found for this email",'red'); return; }
+    showMessage("If not verified, check inbox for link. If not received, sign up again.",'green');
+    closeResendModal();
+  }).catch(e=>showMessage(e.message,'red'));
+}
+function logout() {
+  auth.signOut().then(() => {
+    if (interestInterval) clearInterval(interestInterval);
+    showAuthSection();
+    showMessage("", 'green');
+  });
+}
+
+function openPlans() {
+    // Only allow this action for a logged-in user
+    if (!auth.currentUser) {
+        showNotification("You must be signed in to view plans.", 'red');
+        return;
+    }
+    hideAllPages();
+    document.getElementById('plans-page').style.display = 'block';
+}
+
+function backToDashboard() {
+    // Only allow this action for a logged-in user
+    if (!auth.currentUser) {
+        showNotification("You must be signed in to view the dashboard.", 'red');
+        return;
+    }
+    hideAllPages();
+    document.getElementById("dashboard").style.display = "block";
+    loadDashboard();
+}
+
+// --- Withdrawal Details Modal Functions ---
+async function openWithdrawalModal() {
+    const userId = getUserId();
+    if (!userId) return;
+
+    try {
+        const doc = await db.collection("users").doc(userId).get();
+        if (doc.exists && doc.data().withdrawalDetails && doc.data().withdrawalDetails.accountNumber) {
+            // Withdrawal details exist, proceed to prompt for amount
+            promptWithdrawalAmount();
+        } else {
+            // Details not filled, show the details form
+            document.getElementById('withdrawal-modal').style.display = 'flex';
+        }
+    } catch (e) {
+        console.error("Error checking withdrawal details: ", e);
+        showNotification("Error checking details. Try again.", 'red');
+    }
+}
+
+function closeWithdrawalModal() {
+    document.getElementById('withdrawal-modal').style.display = 'none';
+    backToDashboard(); 
+}
+
+async function submitWithdrawalDetails() {
+    const bankName = document.getElementById('bank-name').value.trim();
+    const accountName = document.getElementById('account-name').value.trim();
+    const accountNumber = document.getElementById('account-number').value.trim();
+    const userId = getUserId();
+
+    if (!bankName || !accountName || !accountNumber) {
+        alert("You can't submit an empty detail. Please fill in all fields!");
+        return; 
+    }
+
+    if (!userId) {
+        showNotification("Error: User not logged in.", 'red');
+        return;
+    }
+
+    const withdrawalDetails = {
+        bankName: bankName,
+        accountName: accountName,
+        accountNumber: accountNumber
+    };
+
+    try {
+        // Save the withdrawal details to the user's document
+        await db.collection("users").doc(userId).set({ withdrawalDetails }, { merge: true });
+        
+        // Reset form fields
+        document.getElementById('bank-name').value = '';
+        document.getElementById('account-name').value = '';
+        document.getElementById('account-number').value = '';
+
+        document.getElementById('withdrawal-modal').style.display = 'none';
+        showNotification("Withdrawal details saved successfully! Done. You can now withdraw.", 'green');
+        promptWithdrawalAmount(); // Immediately prompt for withdrawal amount
+    } catch (e) {
+        console.error("Error saving withdrawal details: ", e);
+        showNotification("Error saving details. See console.", 'red');
+    }
+}
+
+// --- Withdrawal Amount Modal Functions ---
+
+function promptWithdrawalAmount() {
+    // Set the input value to a minimum of 1000.00 on open
+    document.getElementById('withdraw-amount-input').value = '1000.00'; 
+    document.getElementById('withdraw-amount-modal').style.display = 'flex';
+}
+
+function closeWithdrawAmountModal() {
+    document.getElementById('withdraw-amount-modal').style.display = 'none';
+}
+
+async function submitWithdrawalAmount() {
+    const amountInput = document.getElementById('withdraw-amount-input').value.trim();
+    const withdrawalAmount = parseInt(parseFloat(amountInput)); 
+    const userId = getUserId();
+    
+    // Get the latest total balance and max withdrawal limit based on lock status
+    const totalBalance = currentBalance + currentInterest;
+    const maxWithdrawal = isMainBalanceLocked ? currentInterest : totalBalance;
+
+    closeWithdrawAmountModal();
+
+    // 1. Initial validation
+    if (isNaN(withdrawalAmount) || withdrawalAmount < MIN_WITHDRAWAL_AMOUNT) {
+        alert(`Can't withdraw amount less than ₦${MIN_WITHDRAWAL_AMOUNT.toLocaleString()}!`);
+        return;
+    }
+    
+    // 2. Insufficient Balance Check (uses the maxWithdrawal based on lock)
+    if (withdrawalAmount > maxWithdrawal) {
+        alert(`Insufficient balance. Maximum withdrawable amount is ₦${maxWithdrawal.toLocaleString()}.`);
+        return;
+    }
+
+    if (!userId) {
+        showNotification("Error: User not logged in.", 'red');
+        return;
+    }
+
+    // 3. Deduction Logic based on lock status
+    let deductionAmount = withdrawalAmount;
+    let mainBalanceChange = 0;
+    let interestEarnedChange = 0;
+    
+    if (isMainBalanceLocked) {
+        // Only withdraw from interest earned
+        interestEarnedChange = -withdrawalAmount;
+    } else {
+        // Withdraw from total balance. Logic: prioritize interest first, then main balance.
+        let remainingToWithdraw = withdrawalAmount;
+        
+        // Deduct from Interest Earned first
+        let interestDeduction = Math.min(remainingToWithdraw, currentInterest);
+        interestEarnedChange = -interestDeduction;
+        remainingToWithdraw -= interestDeduction;
+        
+        // Deduct the rest from Main Balance
+        mainBalanceChange = -remainingToWithdraw;
+    }
+
+    // 4. Log the PENDING transaction
+    const transactionRef = await logTransaction('Withdrawal', deductionAmount, 'pending');
+
+    // 5. Update the user's mainBalance and interestEarned using a transaction
+    try {
+        await db.runTransaction(async (transaction) => {
+            const userDocRef = db.collection("users").doc(userId);
+            
+            // Apply changes to Firestore
+            transaction.update(userDocRef, {
+                mainBalance: firebase.firestore.FieldValue.increment(mainBalanceChange),
+                interestEarned: firebase.firestore.FieldValue.increment(interestEarnedChange)
+            });
+        });
+    } catch(e) {
+        console.error("Firestore Transaction failed during withdrawal: ", e);
+        showNotification("Error processing withdrawal transaction.", 'red');
+        // Log a failed transaction here in a real app
+        return;
+    }
+
+    // 6. Show alerts and navigate to dashboard
+    alert("Withdrawal in progress! Please click OK to continue.");
+    alert("Withdrawal in progress!");
+    backToDashboard(); 
+
+    // 7. Simulate the 10-second processing time
+    setTimeout(async () => {
+        try {
+            // Update the transaction status to 'success' after 10 seconds
+            await db.collection("users").doc(userId).collection("transactions").doc(transactionRef.id).update({
+                status: 'success'
+            });
+
+            showNotification(`Withdrawal of ₦${deductionAmount.toLocaleString()} has been processed successfully!`, 'green');
+            loadDashboard(); // Refresh dashboard to show updated history
+
+        } catch (e) {
+            console.error("Error updating withdrawal status: ", e);
+            showNotification("Error updating withdrawal status. Please check manually.", 'red');
+        }
+    }, 10000); // 10 seconds
+}
+
+
+// --- Profile Page Functions ---
+
+async function openProfilePage() {
+    // Security check
+    if (!auth.currentUser) {
+        showNotification("You must be signed in to view your profile.", 'red');
+        return;
+    }
+
+    hideAllPages();
+    document.getElementById('profile-page').style.display = 'block';
+    
+    const user = auth.currentUser;
+    document.getElementById('profile-email-display').innerText = user.email;
+    
+    const userId = getUserId();
+    if (!userId) return;
+
+    try {
+        const doc = await db.collection("users").doc(userId).get();
+        if (doc.exists && doc.data().withdrawalDetails) {
+            const details = doc.data().withdrawalDetails;
+            document.getElementById('profile-bank-name').innerText = details.bankName || 'N/A';
+            document.getElementById('profile-account-name').innerText = details.accountName || 'N/A';
+            document.getElementById('profile-account-number').innerText = details.accountNumber || 'N/A';
+            document.getElementById('saved-withdrawal-details').style.display = 'block';
+            document.getElementById('no-withdrawal-details').style.display = 'none';
+        } else {
+            // No details saved
+            document.getElementById('saved-withdrawal-details').style.display = 'none';
+            document.getElementById('no-withdrawal-details').style.display = 'block';
+        }
+    } catch(e) {
+        console.error("Error loading profile details: ", e);
+        showNotification("Error loading profile details.", 'red');
+    }
+}
+
+
+// --- Deposit modal ---
+function choosePlan(plan, amount, interest, btn) {
+  // Only allow this action for a logged-in user
+    if (!auth.currentUser) {
+        showNotification("Please sign in or sign up first.", 'red');
+        return;
+    }
+    
+  const buttons = document.querySelectorAll('.plan-btn');
+  buttons.forEach(b => b.style.opacity = "1");
+  btn.style.opacity = "0.6";
+
+  document.getElementById('deposit-title').innerText = plan + " Plan Selected";
+  document.getElementById('deposit-amount').innerText = amount.toLocaleString();
+  document.getElementById('deposit-interest').innerText = interest.toLocaleString();
+  document.getElementById('deposit-modal').style.display = "flex";
+  document.getElementById('account-details').style.display = "none";
+
+  // Store the selected plan details (including plan type for lock logic)
+  pendingDepositAmount = amount;
+  pendingDepositInterest = interest;
+  pendingPlanType = plan; // NEW
+}
+function closeDeposit(){ document.getElementById('deposit-modal').style.display='none'; }
+function showAccountDetails(){ document.getElementById('account-details').style.display='block'; }
+function copyAccountNumber(){
+  const acc="1234567890";
+  navigator.clipboard.writeText(acc).then(()=>showNotification("Account number copied: "+acc)); 
+}
+
+// --- Dashboard Logic ---
+
+function getUserId() {
+  const user = auth.currentUser;
+  return user ? user.uid : null;
+}
+
+// MODIFIED logTransaction to handle transaction status
+async function logTransaction(type, amount, status = 'success') {
+    const userId = getUserId();
+    if (!userId) return;
+    
+    const amountAbs = Math.abs(amount); // Log absolute amount
+
+    try {
+        return db.collection("users").doc(userId).collection("transactions").add({
+            type: type, // 'Deposit', 'Interest', 'Withdrawal'
+            amount: amountAbs,
+            status: status, // 'success', 'pending', 'failed'
+            timestamp: firebase.firestore.Timestamp.now()
+        });
+    } catch(e) {
+        console.error("Error logging transaction: ", e);
+    }
+}
+
+/**
+ * Loads and displays the user's dashboard data from Firestore.
+ */
+async function loadDashboard() {
+    const userId = getUserId();
+    if (!userId) {
+        showNotification("Error: No user ID. Please sign in again.", 'red');
+        return;
+    }
+
+    try {
+        // Fetch user data
+        const userDoc = await db.collection("users").doc(userId).get();
+        if (userDoc.exists) {
+            const data = userDoc.data();
+            currentBalance = data.mainBalance || 0;
+            currentInterest = data.interestEarned || 0;
+            dailyInterest = data.dailyInterest || 0;
+            
+            // NEW: Calculate Total Balance
+            const totalBalance = currentBalance + currentInterest; 
+            const planEndDateTimestamp = data.planEndDate; // NEW
+            const now = firebase.firestore.Timestamp.now(); // NEW
+
+            document.getElementById('main-balance').innerText = currentBalance.toLocaleString();
+            document.getElementById('interest-earned').innerText = currentInterest.toLocaleString();
+            document.getElementById('total-balance').innerText = totalBalance.toLocaleString(); // NEW
+            document.getElementById('welcome-title').innerText = "Welcome, " + (auth.currentUser.displayName || auth.currentUser.email) + "!";
+            
+            // NEW: Lock Logic (Plan Period Constraint)
+            const lockIcon = document.getElementById('main-balance-lock');
+            
+            if (planEndDateTimestamp && now.toDate() < planEndDateTimestamp.toDate()) {
+                // Plan is still active (Locked)
+                isMainBalanceLocked = true;
+                lockIcon.className = "fas fa-lock";
+                lockIcon.style.color = "red";
+            } else {
+                // Plan is over or no plan active (Unlocked)
+                isMainBalanceLocked = false;
+                lockIcon.className = "fas fa-lock-open";
+                lockIcon.style.color = "green";
+            }
+            
+        } else {
+            // Initialize user data if document doesn't exist
+            await db.collection("users").doc(userId).set({
+                mainBalance: 0,
+                interestEarned: 0,
+                dailyInterest: 0,
+                lastInterestCheck: firebase.firestore.Timestamp.now()
+            });
+            currentBalance = 0;
+            currentInterest = 0;
+            dailyInterest = 0;
+            document.getElementById('main-balance').innerText = '0';
+            document.getElementById('interest-earned').innerText = '0';
+            document.getElementById('total-balance').innerText = '0';
+        }
+
+        // Fetch and display transaction history
+        const historyContainer = document.getElementById('transaction-history');
+        historyContainer.innerHTML = '';
+        
+        const transactionsSnapshot = await db.collection("users").doc(userId).collection("transactions")
+                                            .orderBy("timestamp", "desc").limit(10).get();
+        
+        if (transactionsSnapshot.empty) {
+            historyContainer.innerHTML = '<p style="opacity: 0.7;">No transactions yet.</p>';
+        } else {
+            transactionsSnapshot.forEach(doc => {
+                const tx = doc.data();
+                let typeClass;
+                let statusText = '';
+                
+                if (tx.type === 'Deposit') {
+                    typeClass = 'deposit';
+                } else if (tx.type === 'Interest') {
+                    typeClass = 'interest';
+                } else if (tx.type === 'Withdrawal') {
+                    if (tx.status === 'pending') {
+                        typeClass = 'withdrawal-pending';
+                        statusText = ' (Pending)';
+                    } else {
+                        typeClass = 'withdrawal-success';
+                        statusText = ' (Success)';
+                    }
+                } else {
+                    typeClass = 'interest'; // Fallback
+                }
+                
+                const date = tx.timestamp.toDate().toLocaleDateString();
+                const time = tx.timestamp.toDate().toLocaleTimeString();
+
+                historyContainer.innerHTML += `
+                    <div class="transaction-item">
+                        <span>${tx.type}: <span class="${typeClass}">₦${tx.amount.toLocaleString()}</span>${statusText}</span>
+                        <span class="tx-date">${date} ${time}</span>
+                    </div>
+                `;
+            });
+        }
+        
+        // Start the interest calculation interval only if we are in the dashboard
+        if (document.getElementById("dashboard").style.display === "block") {
+            startInterestCalculation();
+        }
+
+
+    } catch(e) {
+        console.error("Error loading dashboard data: ", e);
+        showNotification("Error loading dashboard data. Check console.", 'red');
+    }
+}
+
+function startInterestCalculation() {
+    if (interestInterval) clearInterval(interestInterval); // Clear any existing interval
+    
+    // For demonstration, check interest every 10 seconds.
+    interestInterval = setInterval(checkAndApplyInterest, 10000); 
+}
+
+async function checkAndApplyInterest() {
+    const userId = getUserId();
+    if (!userId || dailyInterest <= 0) return;
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const userDocRef = db.collection("users").doc(userId);
+            const userDoc = await transaction.get(userDocRef);
+
+            if (!userDoc.exists) return;
+
+            const data = userDoc.data();
+            const lastCheckTimestamp = data.lastInterestCheck || firebase.firestore.Timestamp.now();
+            const now = firebase.firestore.Timestamp.now();
+            const timeSinceLastCheckMs = now.toDate().getTime() - lastCheckTimestamp.toDate().getTime();
+
+            // Check if 24 hours (DAILY_INTERVAL_MS) has passed.
+            if (timeSinceLastCheckMs >= DAILY_INTERVAL_MS) {
+                const interestAmount = data.dailyInterest;
+
+                // Update balances
+                const newBalance = data.mainBalance + interestAmount;
+                const newInterestEarned = data.interestEarned + interestAmount;
+
+                transaction.update(userDocRef, {
+                    mainBalance: newBalance,
+                    interestEarned: newInterestEarned,
+                    lastInterestCheck: now
+                });
+
+                // Log interest transaction
+                const newTransactionRef = userDocRef.collection("transactions").doc();
+                transaction.set(newTransactionRef, {
+                    type: 'Interest',
+                    amount: interestAmount,
+                    status: 'success', 
+                    timestamp: now
+                });
+                
+                // Update local state and UI immediately after transaction success
+                currentBalance = newBalance;
+                currentInterest = newInterestEarned;
+                document.getElementById('main-balance').innerText = currentBalance.toLocaleString();
+                document.getElementById('interest-earned').innerText = currentInterest.toLocaleString();
+                document.getElementById('total-balance').innerText = (currentBalance + currentInterest).toLocaleString();
+                showNotification(`Interest Earned! ₦${interestAmount.toLocaleString()}`, 'green');
+                loadDashboard(); // Reload history
+            }
+        });
+    } catch(e) {
+        console.error("Transaction failed: ", e);
+    }
+}
+
+// --- DEPOSIT HELPER FUNCTION ---
+/**
+ * Function to show the temporary "Deposit processing..." message at the bottom right.
+ */
+function showDepositProcessingMessage() {
+    const message = document.createElement('div');
+    message.id = 'processing-message';
+    message.textContent = 'Deposit processing...';
+    document.body.appendChild(message);
+
+    // Remove the message after 3 seconds (3000 milliseconds)
+    setTimeout(() => {
+        const msg = document.getElementById('processing-message');
+        if (msg) msg.remove(); // Safely remove the message
+    }, 3000);
+}
+
+/**
+ * Handles the transfer confirmation process with smooth notifications and database update.
+ */
+function handleTransferConfirmation(amount, interest) {
+  // 1. Hide the deposit modal
+  closeDeposit();
+  
+  // 2. Show the loading pop-up and start the progress bar (5s duration)
+  const loadingModal = document.getElementById('loading-modal');
+  const progressBar = document.getElementById('loading-progress');
+  loadingModal.style.display = 'flex';
+  progressBar.style.width = '0%';
+  
+  // Force a redraw to ensure the transition runs from 0%
+  void progressBar.offsetWidth; 
+  
+  // Start the CSS transition to 100% over 5 seconds
+  progressBar.style.width = '100%';
+
+  // 3. Set a timeout for the simulated check (5 seconds)
+  setTimeout(async () => {
+    loadingModal.style.display = 'none'; // Hide loading modal
+    
+    // --- NEW ALERT AND TEMPORARY MESSAGE ---
+    alert("Your money is on the way! It will be credited soon.");
+    showDepositProcessingMessage();
+    // --- END: NEW ALERT AND TEMPORARY MESSAGE ---
+    
+    const userId = getUserId();
+    if (!userId) {
+        showNotification("Error: User not logged in.", 'red');
+        return;
+    }
+
+    try {
+      // Determine plan duration
+      let planDurationDays = 0;
+      if (pendingPlanType === 'Daily') planDurationDays = 1;
+      else if (pendingPlanType === 'Weekly') planDurationDays = 7;
+      else if (pendingPlanType === 'Monthly') planDurationDays = 30;
+
+      const planEndDate = new Date();
+      planEndDate.setDate(planEndDate.getDate() + planDurationDays);
+
+      // Use a Firestore Transaction to ensure atomic update
+      await db.runTransaction(async (transaction) => {
+        const userDocRef = db.collection("users").doc(userId);
+        const userDoc = await transaction.get(userDocRef);
+
+        let newBalance = userDoc.data().mainBalance || 0;
+        
+        // Update the main balance and set the new daily interest
+        newBalance += amount;
+        
+        // Save the updated data
+        transaction.update(userDocRef, {
+          mainBalance: newBalance,
+          dailyInterest: interest, 
+          lastInterestCheck: firebase.firestore.Timestamp.now(), 
+          planEndDate: firebase.firestore.Timestamp.fromDate(planEndDate) // NEW: Plan End Date
+        });
+
+        // Log the deposit transaction
+        await logTransaction('Deposit', amount);
+      });
+
+      // Show notification and refresh dashboard after the 3s processing message
+      setTimeout(() => {
+          showNotification(`Deposit of ₦${amount.toLocaleString()} confirmed and plan activated! 🎉`, 'green');
+          openHomePage(); // Go back to the home page
+      }, 3000); 
+      
+    } catch (e) {
+      console.error("Transfer confirmation transaction failed: ", e);
+      showNotification("Transfer confirmation failed. Try again.", 'red');
+      await logTransaction('Deposit Failed', amount);
+    }
+
+  }, 5000); // 5 seconds to simulate transfer check
+}
+
+// --- Auth State Listener (CRITICAL) ---
+firebase.auth().onAuthStateChanged(user => {
+    if (user && user.emailVerified) {
+        // User is signed in AND email is verified
+        showWelcome(); // showWelcome now directs to openHomePage
+    } else {
+        // User is signed out or email is not verified
+        if (interestInterval) clearInterval(interestInterval); // Stop interest calculation
+        showAuthSection(); // Show the login/signup screen
+    }
+});
+</script>
+</body>
+</html>
